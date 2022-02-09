@@ -60,10 +60,10 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git@github.com:CycloneDX/cyclonedx-core-java.git</connection>
-        <developerConnection>scm:git:git@github.com:CycloneDX/cyclonedx-core-java.git</developerConnection>
+        <connection>scm:git:git@github.com:netceler/cyclonedx-core-java.git</connection>
+        <developerConnection>scm:git:git@github.com:netceler/cyclonedx-core-java.git</developerConnection>
         <tag>HEAD</tag>
-        <url>https://github.com/CycloneDX/cyclonedx-core-java.git</url>
+        <url>https://github.com/netceler/cyclonedx-core-java/</url>
     </scm>
 
     <issueManagement>
