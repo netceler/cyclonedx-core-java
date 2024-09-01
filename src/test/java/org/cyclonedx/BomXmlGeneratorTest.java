@@ -20,6 +20,7 @@ package org.cyclonedx;
 
 import java.nio.charset.StandardCharsets;
 import org.apache.commons.io.IOUtils;
+import org.cyclonedx.exception.GeneratorException;
 import org.cyclonedx.exception.ParseException;
 import org.cyclonedx.generators.BomGeneratorFactory;
 import org.cyclonedx.generators.json.BomJsonGenerator;
@@ -32,6 +33,7 @@ import org.cyclonedx.model.License;
 import org.cyclonedx.model.LicenseChoice;
 import org.cyclonedx.model.Metadata;
 import org.cyclonedx.model.Service;
+import org.cyclonedx.model.Tool;
 import org.cyclonedx.model.license.Expression;
 import org.cyclonedx.parsers.JsonParser;
 import org.cyclonedx.parsers.XmlParser;
@@ -42,17 +44,17 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.w3c.dom.Document;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.stream.Stream;
 import java.util.Objects;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class BomXmlGeneratorTest {
@@ -600,6 +602,72 @@ public class BomXmlGeneratorTest {
 
         XmlParser parser = new XmlParser();
         assertTrue(parser.isValid(loadedFile, version));
+    }
+
+    @Test
+    void should_write_a_single_tool_in_xml_format() throws Exception {
+        final Bom bom = new Bom();
+        bom.setMetadata(new Metadata());
+        bom.getMetadata().addTool(given_a_tool("A"));
+
+        final BomXmlGenerator generator = (BomXmlGenerator) BomGeneratorFactory.create(Version.VERSION_15, bom, Format.XML);
+        Document doc = generator.generate();
+
+        testDocument(doc);
+        assertEquals(Version.VERSION_15, generator.getSchemaVersion());
+        File file = writeToFile(generator.toXmlString());
+        XmlParser parser = new XmlParser();
+
+        // for debug purpose, to remove
+        System.out.println(generator.toXmlString());
+
+        assertEquals(1, doc.getElementsByTagName("tool").getLength());
+        assertEquals(1, doc.getElementsByTagName("tools").getLength());
+        assertTrue(parser.isValid(file, Version.VERSION_15));
+    }
+
+    @Test
+    void should_write_many_tools_with_json_format() throws GeneratorException {
+        final Bom bom = new Bom();
+        bom.setMetadata(new Metadata());
+        bom.getMetadata().addTool(given_a_tool("A"));
+        bom.getMetadata().addTool(given_a_tool("B"));
+        bom.getMetadata().addTool(given_a_tool("C"));
+
+        final BomJsonGenerator generator = (BomJsonGenerator) BomGeneratorFactory.create(Version.VERSION_15, bom, Format.JSON);
+
+        assertThat(generator.toJsonString()).containsOnlyOnce("\"tools\" ");
+    }
+
+    @Test
+    public void testIssuesWhenSerializingMultiplesToolsInXmlFormat() throws Exception {
+        Bom bom = new Bom();
+        bom.setMetadata(new Metadata());
+        bom.getMetadata().addTool(given_a_tool("A"));
+        bom.getMetadata().addTool(given_a_tool("B"));
+
+        BomXmlGenerator generator = BomGeneratorFactory.createXml(Version.VERSION_15, bom);
+        Document doc = generator.generate();
+
+        testDocument(doc);
+        assertEquals(Version.VERSION_15, generator.getSchemaVersion());
+        File file = writeToFile(generator.toXmlString());
+        XmlParser parser = new XmlParser();
+
+        // for debug purpose only, to remove
+        System.out.println(generator.toXmlString());
+
+        assertEquals(2, doc.getElementsByTagName("tool").getLength());
+        assertEquals(1, doc.getElementsByTagName("tools").getLength());
+        assertTrue(parser.isValid(file, Version.VERSION_15));
+    }
+
+    private static Tool given_a_tool(final String id) {
+        final Tool aTool = new Tool();
+        aTool.setName("tool " + id);
+        aTool.setVersion("1-" + id);
+        aTool.setVendor("corp " + id);
+        return aTool;
     }
 
     private void assertExternalReferenceInfo(Bom bom) {
